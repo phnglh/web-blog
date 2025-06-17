@@ -1,115 +1,181 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+"use client"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import Head from "next/head"
+import Link from "next/link"
+import { useState, useEffect, useCallback } from "react"
+import type { GetStaticProps } from "next"
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+interface Post {
+  id: number
+  title: string
+  body: string
+  userId: number
+}
 
-export default function Home() {
+interface HomeProps {
+  initialPosts: Post[]
+}
+
+export default function Home({ initialPosts }: HomeProps) {
+  const [posts, setPosts] = useState<Post[]>(initialPosts)
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(2)
+  const [hasMore, setHasMore] = useState(true)
+
+  const loadMorePosts = useCallback(async () => {
+    if (loading || !hasMore) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`https://jsonplaceholder.typicode.com/posts?_page=${page}&_limit=6`)
+      const newPosts: Post[] = await response.json()
+
+      if (newPosts.length === 0) {
+        setHasMore(false)
+      } else {
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
+          return [...prev, ...uniqueNewPosts];
+        })
+        setPage((prev) => prev + 1)
+      }
+    } catch (error) {
+      console.error("Error loading more posts:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [page, loading, hasMore])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000) {
+        loadMorePosts()
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [loadMorePosts])
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    <>
+      <Head>
+        <title>Blog - Trang chủ</title>
+        <meta name="description" content="Khám phá những bài viết thú vị và hữu ích trên blog của chúng tôi" />
+        <meta name="keywords" content="blog, bài viết, tin tức, công nghệ" />
+        <meta property="og:title" content="Blog - Trang chủ" />
+        <meta property="og:description" content="Khám phá những bài viết thú vị và hữu ích trên blog của chúng tôi" />
+        <meta property="og:type" content="website" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href="/" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-50">
+        <main className="max-w-6xl mx-auto px-4 py-8">
+          {posts.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-500 text-lg">Đang tải bài viết...</div>
+            </div>
+          ) : (
+            <>
+
+              <section>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Tất cả bài viết</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {posts.map((post, index) => (
+                    <article
+                      key={post.id}
+                      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 animate-fadeIn"
+                      style={{ animationDelay: `${(index % 6) * 100}ms` }}
+                    >
+                      <div className="p-6">
+                        <Link href={`/blog/${post.id}`}>
+                          <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
+                            {post.title}
+                          </h3>
+                        </Link>
+                        <p className="text-gray-600 mb-4 line-clamp-3">{post.body}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-sm">#{post.id}</span>
+                          <Link
+                            href={`/blog/${post.id}`}
+                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                          >
+                            Đọc thêm →
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              {loading && (
+                <div className="flex justify-center items-center py-8">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <span className="text-gray-600">Đang tải thêm bài viết...</span>
+                  </div>
+                </div>
+              )}
+
+              {!hasMore && !loading && (
+                <div className="text-center py-12">
+                  <div className="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">B��n đã xem hết rồi!</h3>
+                    <p className="text-gray-600 mb-6">Cảm ơn bạn đã đọc tất cả bài viết của chúng tôi</p>
+                    <button
+                      onClick={scrollToTop}
+                      className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Quay lên đầu trang
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {hasMore && !loading && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={loadMorePosts}
+                    className="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Tải thêm bài viết
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+    </>
+  )
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  try {
+    const res = await fetch("https://jsonplaceholder.typicode.com/posts?_page=1&_limit=6")
+    const initialPosts: Post[] = await res.json()
+
+    return {
+      props: {
+        initialPosts,
+      },
+      revalidate: 3600,
+    }
+  } catch (error) {
+    console.error("Error fetching initial posts:", error)
+    return {
+      props: {
+        initialPosts: [],
+      },
+      revalidate: 60,
+    }
+  }
 }
